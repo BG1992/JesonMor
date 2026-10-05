@@ -1,0 +1,36 @@
+{
+ "name": "najlepsza (pok. 9) + przeciążenie + luźne + przewaga + blef",
+ "weights": {
+  "attackers": 227.08539433810375,
+  "free": 116.56492966003674,
+  "majority": 37.33447716786499,
+  "threats": 38.44994226337485,
+  "active": -0.20602417122717015,
+  "hunts": 2.1747715449817986,
+  "mobility": 1.6299971179699022,
+  "near": 3.5975077324859415,
+  "reinforce": 71.59029634136273,
+  "hanging": -42.58583085023599,
+  "exposed": -8.849303120722048,
+  "unanswered": -123.01382705083829,
+  "entries": -31.6253440239253,
+  "parity": 97.64319358680955,
+  "tempo": 6.244713965970421,
+  "overloaded": -60.0,
+  "loose": -60.0,
+  "outnumbered": -60.0,
+  "bluff": -60.0
+ },
+ "mirror_bonus": -13.322753034150375,
+ "theory": true,
+ "validation": {
+  "games": 54,
+  "W": 53,
+  "D": 0,
+  "L": 1,
+  "score": 1.1257,
+  "win_plies": 26.1
+ },
+ "generation": 9,
+ "zmiana": "2026-10-03: cecha overloaded = -60 po analizie partii człowiek-heurystyka (błąd czarnych a9-b7 w 18. półruchu, przegrana po c3-d5); walidacja 54 partii bez zmian (bez cechy 1.0068), test 210 partii: 202W/8P w obu wersjach, wynik 1.0652 wobec 1.0650; 2026-10-03: cecha loose = -60 po analizie przegranej czarnych na głębokości 4 (945/184: c8-b6 zostawił c6 bez obrony przed e2-d4); walidacja 54 partii 52W/2P, wynik 1.0661 (bez cechy 51W/3P, 1.0067); głębokości 1-4 na tych 54 i 40 nowych pozycjach: 365W/11P wobec 359W/17P, 6 porażek -> wygrane, 0 wygranych -> porażki; poprzednia wersja: best_pok9_przeciazenie.json; 2026-10-03: cecha outnumbered = -60 po analizie przegranych 945/935 i 945/944 na głębokości 4 (g6 atakowany przez f4 i i5, broniony tylko przez h8; czarne kontratakowały b7-a5 i g8-f6 zamiast g8-e7/g8-i7); walidacja 54 partii bez zmian (52W/2P, 1.0661); głębokości 1-4 na tych 54 i 40 nowych pozycjach: 368W/8P wobec 365W/11P, 4 porażki -> wygrane, 1 wygrana -> porażka (945/487 gł. 3); porażki 945 na gł. 4 (canonical945_d4.csv): 845, 935, 944 -> wygrane, 211 nadal przegrana; poprzednia wersja: best_pok9_luzne.json; 2026-10-03: cecha bluff = -60 po analizie przegranej 945/205 na głębokości 4 (a6-b4: c6 niebroniony po e1-c2, a jedyna groźba czarnych b6->c4 pokryta przez e3, więc wyjątek inicjatywy L4 w unanswered był pozorny); walidacja 54 partii 53W/1P, wynik 1.1257 (bez cechy 52W/2P, 1.0661); głębokości 1-4 na tych 54 i 40 nowych pozycjach: 370W/6P wobec 368W/8P, 4 porażki -> wygrane, 2 wygrane -> porażki (945/104 gł. 1, 945/125 gł. 2); waga -80: 369W/7P; zmiana samego wyjątku w unanswered: 366W/10P (odrzucona); 945 na gł. 4 (canonical945_d4_blef.csv): 944W/1P, przegrana tylko 211 (naprawia ją dopiero przedłużenie końcówki o 4 półruchy: opcja ext=4 / --ext 4, domyślnie wyłączona; walidacja 94 korzeni gł. 1-4: 370W/6P jak bez opcji, ok. 3x dłuższe partie); 2026-10-05: 945 na gł. 5 + końcówka +4: 944W/1P (701, nieparzysta głębokość zbyt optymistyczna); ruch wg średniej gł. 4 i 5 (engine.MeanPlayer, --mean 8) + końcówka +4: 945W/0P (canonical945_d5_ext4_mean8.csv), ok. 2x czasu gł. 5; poprzednia wersja: best_pok9_przewaga.json"
+}

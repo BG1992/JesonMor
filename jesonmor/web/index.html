@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeson Mor 9×9</title>
+<style>
+  :root {
+    --bg: #f6f3ee; --panel: #ffffff; --text: #1f1d1a; --muted: #6b655c; --line: #ddd6ca;
+    --accent: #3a7d44; --last-from: #f6e05e; --last-to: #f6ad55; --sel: #e0a800;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1a18; --panel: #262421; --text: #ece7df; --muted: #a39c90; --line: #3a3732; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 20px;
+         align-items: flex-start; justify-content: center; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .boardwrap { --size: min(92vw, 72vh, 560px); width: var(--size); }
+  .board { display: grid; grid-template-columns: 22px repeat(9, 1fr); grid-template-rows: repeat(9, 1fr) 22px;
+           width: var(--size); height: var(--size); user-select: none; }
+  .lab { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+  .sq { position: relative; border: none; padding: 0; margin: 0; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; }
+  .sq.last-from { box-shadow: inset 0 0 0 4px var(--last-from); }
+  .sq.last-to { box-shadow: inset 0 0 0 4px var(--last-to); }
+  .pc { width: 78%; height: 78%; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: calc(var(--size) / 15); line-height: 1; border: 2px solid #444; }
+  .pc.w { background: #fff; color: #111; }
+  .pc.b { background: #111; color: #fff; border-color: #888; }
+  .pc.sel { border: 4px solid var(--sel); }
+  .dot { width: 30%; height: 30%; border-radius: 50%; background: var(--accent); opacity: .85; }
+  .sq .dot.cap { position: absolute; inset: 6%; width: auto; height: auto; background: none;
+                 border: 4px solid var(--accent); }
+  .side { flex: 1 1 280px; max-width: 380px; min-width: 260px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+          margin-bottom: 14px; }
+  #status { font-size: 17px; min-height: 2.9em; }
+  #status.end { font-weight: 600; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  button.act { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
+               background: var(--panel); color: var(--text); cursor: pointer; }
+  button.act:hover:not(:disabled) { border-color: var(--accent); }
+  button.act:disabled { opacity: .45; cursor: default; }
+  #moves { font-family: Consolas, "Courier New", monospace; font-size: 14px; max-height: 300px; overflow-y: auto;
+           white-space: pre; margin: 0; }
+  .rules { color: var(--muted); font-size: 14px; }
+  .err { color: #c0392b; font-size: 14px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<main>
+  <section class="boardwrap">
+    <h1>Jeson Mor 9×9</h1>
+    <p class="sub">You play White. The computer plays Black.</p>
+    <div id="board" class="board" aria-label="board"></div>
+  </section>
+  <section class="side">
+    <div class="card">
+      <div id="status">Loading…</div>
+      <div id="err" class="err"></div>
+      <div class="buttons">
+        <button class="act" id="new">New game</button>
+        <button class="act" id="undo">Undo</button>
+        <button class="act" id="resign">Resign</button>
+      </div>
+    </div>
+    <div class="card">
+      <strong>Moves</strong>
+      <pre id="moves"></pre>
+    </div>
+    <div class="card rules">
+      Knights move as in chess. You win by jumping onto the red square e5 and keeping your knight there
+      through your opponent's move. A side with no legal move loses.
+      Click a white knight, then a square with a green dot. Undo: Ctrl+Z.
+    </div>
+  </section>
+</main>
+<script>
+const FILES = "abcdefghi";
+const nameOf = s => FILES[Math.floor(s / 9)] + (s % 9 + 1);
+let S = null, colors = null, sel = null, busy = false, timer = null;
+
+async function api(path, body) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"},
+                               body: JSON.stringify(body || {})});
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || ("error " + r.status));
+  return d;
+}
+
+function setState(d) {
+  if (d.colors) colors = d.colors;
+  S = d;
+  try { sessionStorage.setItem("jm-id", d.id); } catch (e) {}
+}
+
+function statusText() {
+  if (S.over) {
+    const {winner, reason} = S.over;
+    if (reason === "resign") return "You resigned. Black wins.";
+    if (reason === "repetition") return "Draw: the same position occurred three times.";
+    if (reason === "limit") return "Draw: move limit reached.";
+    if (winner === "w") return reason === "center" ? "You win! Your knight held e5."
+                                                    : "You win! Black has no legal move.";
+    return reason === "center" ? "Black wins: a black knight held e5."
+                               : "Black wins: White has no legal move.";
+  }
+  if (S.turn === "b") return "Black is thinking…";
+  return sel === null ? "Your move: pick a white knight." : "Pick a target square (green dot).";
+}
+
+function render() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const targets = new Set(sel !== null ? (S.legal[String(sel)] || []) : []);
+  const last = S.last || [];
+  for (let row = 0; row < 9; row++) {                       // top row = column 9 (white at the bottom)
+    const c = 8 - row;
+    const lab = document.createElement("div");
+    lab.className = "lab"; lab.textContent = c + 1;
+    board.appendChild(lab);
+    for (let r = 0; r < 9; r++) {
+      const s = r * 9 + c;
+      const b = document.createElement("button");
+      b.className = "sq" + (s === last[0] ? " last-from" : "") + (s === last[1] ? " last-to" : "");
+      b.style.background = colors ? colors[s] : "#ccc";
+      b.setAttribute("aria-label", nameOf(s));
+      b.onclick = () => click(s);
+      if (S.board[s]) {
+        const p = document.createElement("div");
+        p.className = "pc " + (S.board[s] === 1 ? "w" : "b") + (s === sel ? " sel" : "");
+        p.textContent = "♞";
+        b.appendChild(p);
+        if (targets.has(s)) { const d = document.createElement("div"); d.className = "dot cap"; b.appendChild(d); }
+      } else if (targets.has(s)) {
+        const d = document.createElement("div"); d.className = "dot"; b.appendChild(d);
+      }
+      board.appendChild(b);
+    }
+  }
+  board.appendChild(document.createElement("div"));
+  for (let r = 0; r < 9; r++) {
+    const lab = document.createElement("div");
+    lab.className = "lab"; lab.textContent = FILES[r];
+    board.appendChild(lab);
+  }
+  const st = document.getElementById("status");
+  if (!timer) st.textContent = statusText();
+  st.className = S.over ? "end" : "";
+  const rows = [];
+  for (let i = 0; i < S.moves.length; i += 2)
+    rows.push(String(i / 2 + 1).padStart(3) + ". " + S.moves[i].padEnd(8) + (S.moves[i + 1] || ""));
+  const mv = document.getElementById("moves");
+  mv.textContent = rows.join("\n");
+  mv.scrollTop = mv.scrollHeight;
+  document.getElementById("undo").disabled = busy || !S.canUndo;
+  document.getElementById("resign").disabled = busy || !!S.over;
+  document.getElementById("new").disabled = busy;
+}
+
+function showError(e) { document.getElementById("err").textContent = e ? String(e.message || e) : ""; }
+
+async function run(fn) {
+  if (busy) return;
+  busy = true; showError(null);
+  try { await fn(); } catch (e) { showError(e); }
+  busy = false;
+  if (S) render();
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function blackMove() {
+  // the server searches the black move in the background; the page asks for the state until it is played
+  const st = document.getElementById("status"), t0 = Date.now();
+  st.textContent = "Black is thinking…";
+  timer = setInterval(() => { st.textContent = "Black is thinking… " + Math.round((Date.now() - t0) / 1000) + " s"; },
+                      1000);
+  try {
+    if (!S.thinking) setState(await api("/api/reply", {id: S.id}));
+    while (S.thinking) {
+      await sleep(700);
+      const r = await fetch("/api/state?id=" + S.id);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || ("error " + r.status));
+      setState(d);
+    }
+    if (S.error) throw new Error(S.error);
+  } finally { clearInterval(timer); timer = null; }
+}
+
+function click(s) {
+  if (busy || !S || S.over || S.turn !== "w") return;
+  if (S.board[s] === 1) { sel = sel === s ? null : s; render(); return; }
+  if (sel !== null && (S.legal[String(sel)] || []).includes(s)) {
+    const f = sel; sel = null;
+    run(async () => {
+      setState(await api("/api/move", {id: S.id, from: f, to: s}));
+      render();
+      if (!S.over && (S.turn === "b" || S.thinking)) await blackMove();
+    });
+  } else { sel = null; render(); }
+}
+
+function newGame() {
+  if (S && !S.over && S.moves.length && !confirm("Abandon the current game?")) return;
+  sel = null;
+  run(async () => { setState(await api("/api/new")); });
+}
+
+document.getElementById("new").onclick = newGame;
+document.getElementById("undo").onclick = () => { sel = null; run(async () => {
+  setState(await api("/api/undo", {id: S.id})); }); };
+document.getElementById("resign").onclick = () => {
+  if (confirm("Resign this game?")) run(async () => { setState(await api("/api/resign", {id: S.id})); });
+};
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key.toLowerCase() === "z" && S && S.canUndo && !busy) document.getElementById("undo").click();
+});
+
+(async () => {
+  let id = null;
+  try { id = sessionStorage.getItem("jm-id"); } catch (e) {}
+  if (id) {
+    try {
+      const r = await fetch("/api/state?id=" + id);
+      if (r.ok) {
+        setState(await r.json()); render();
+        if (!S.over && (S.turn === "b" || S.thinking)) run(blackMove);
+        return;
+      }
+    } catch (e) {}
+  }
+  run(async () => { setState(await api("/api/new")); });
+})();
+</script>
+</body>
+</html>
