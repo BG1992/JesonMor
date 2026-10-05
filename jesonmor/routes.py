@@ -51,25 +51,25 @@ def black_reply(pos: Position, white_move, depth: int = 2, tt=None):
     routes = route_moves(pos)
     progressed = fill_cost(pos.w) < fill_cost(pos.w ^ (1 << white_move[1]) | (1 << white_move[0]))
     mir = (mirror(white_move[0]), mirror(white_move[1]))
-    groups = [([mir], "lustro")] if progressed and mir in routes else []
-    groups += [(routes, "trasa"), (pos.moves(), "bezpieczny ruch spoza trasy")]
+    groups = [([mir], "mirror")] if progressed and mir in routes else []
+    groups += [(routes, "route"), (pos.moves(), "safe move off the route")]
     for cands, kind in groups:
         scored = sorted(((minimax(pos.play(m), depth - 1, tt=tt, ply=1), m) for m in cands), reverse=True)
         for s, m in scored:
             if s > -(WIN - 1000) and (s >= WIN - 1000 or safe(pos.play(m), tt)):
                 return m, kind, s
     m, s = best_black_move(pos, depth, tt)
-    return m, "zwykła polityka (brak bezpiecznego ruchu)", s
+    return m, "default policy (no safe move)", s
 
 
 def _classify(p: Position):
     wd = exchange_winner(p)
     if wd is not None:
-        return "wygrywają " + ("białe" if wd == WHITE else "czarne")
+        return ("white" if wd == WHITE else "black") + " wins"
     if is_canonical(p):
-        return "kanoniczna"
+        return "canonical"
     if (p.w | p.b) & FIRST_BB == FIRST_BB:
-        return "pełna, niekanoniczna"
+        return "full, non-canonical"
     return None
 
 
@@ -81,7 +81,7 @@ def expand(max_plies: int = 16, depth: int = 2, out_dir: str = None, log=print, 
     out_dir = out_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "routes")
     os.makedirs(out_dir, exist_ok=True)
     level, tt, out = {(Position.start(), None)}, {}, Counter()
-    keep = {"kanoniczna": [], "pełna, niekanoniczna": [], "wygrywają białe": []}
+    keep = {"canonical": [], "full, non-canonical": [], "white wins": []}
     for ply in range(1, max_plies + 1):
         nxt, kinds, wins = set(), Counter(), []
         for p, last in level:
@@ -90,36 +90,36 @@ def expand(max_plies: int = 16, depth: int = 2, out_dir: str = None, log=print, 
             else:
                 m, kind, s = (policy or black_reply)(p, last, depth, tt)
                 if s >= WIN - 1000:                       # black has a proven win: stop this line here
-                    out["wygrywają czarne (przeszukiwanie)"] += 1
+                    out["black wins (search)"] += 1
                     wins.append(p)
                     continue
                 kinds[kind] += 1
                 children = [(p.play(m), None)]
             for c, mv in children:
                 k = _classify(c)
-                if parents is not None and (k is None or k == "wygrywają białe") and c not in parents:
+                if parents is not None and (k is None or k == "white wins") and c not in parents:
                     parents[c] = (p, mv if mv else m, None if mv else kind)
                 if k is None:
                     nxt.add((c, mv))
-                elif k == "wygrywają czarne":
+                elif k == "black wins":
                     wins.append(c)
                     out[k] += 1
                 else:
                     keep[k].append(c)
                     out[k] += 1
         save(os.path.join(out_dir, "black_wins_ply%02d.bin" % ply), set(wins))
-        log("półruch %d zakończony: otwartych %d | ruchy czarnych %s | razem %s"
+        log("ply %d done: open %d | black moves %s | total %s"
             % (ply, len(nxt), dict(kinds), dict(out)))
         level = nxt
         if not level:
             break
-    canon = set(keep["kanoniczna"])
+    canon = set(keep["canonical"])
     save(os.path.join(out_dir, "canonical_white.bin"), [p for p in canon if p.turn == WHITE])
     save(os.path.join(out_dir, "canonical_black.bin"), [p for p in canon if p.turn == BLACK])
-    save(os.path.join(out_dir, "full_noncanonical.bin"), set(keep["pełna, niekanoniczna"]))
-    save(os.path.join(out_dir, "white_wins.bin"), set(keep["wygrywają białe"]))
+    save(os.path.join(out_dir, "full_noncanonical.bin"), set(keep["full, non-canonical"]))
+    save(os.path.join(out_dir, "white_wins.bin"), set(keep["white wins"]))
     save(os.path.join(out_dir, "unfinished.bin"), {p for p, _ in level})
-    log("KONIEC: różnych pozycji kanonicznych %d (białe na ruchu %d, czarne na ruchu %d) | otwartych po limicie %d | zapisano w %s"
+    log("END: distinct canonical positions %d (white to move %d, black to move %d) | open at the limit %d | saved in %s"
         % (len(canon), sum(p.turn == WHITE for p in canon), sum(p.turn == BLACK for p in canon), len(level), out_dir))
     return canon, out
 

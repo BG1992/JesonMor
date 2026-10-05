@@ -35,7 +35,7 @@ def _guarded(pos, mv, kind):
     supports = [m for lst in SUPPORT.values() for m in lst if m in legal]
     for m in supports + legal:
         if ok(m):
-            return m, "podparcie" if m in supports else "bezpieczny ruch spoza planu"
+            return m, "support" if m in supports else "safe move off the plan"
     return mv, kind
 
 
@@ -43,11 +43,11 @@ def plan_reply(pos, white_move, depth: int = 2, tt=None):
     """(move, kind, score) of the fixed plan."""
     m, s = best_black_move(pos, depth, tt)
     if s >= WIN - 1000:
-        return m, "wygrana", s
+        return m, "win", s
     legal = set(pos.moves())
     for mv in RECAPTURE:
         if mv in legal and pos.w >> mv[1] & 1:
-            return mv, "odbicie z (4,8)", 0
+            return mv, "recapture from (4,8)", 0
     for f, t in STEPS:
         if not pos.b >> f & 1 or pos.b >> t & 1:
             continue                                   # step done or knight not there
@@ -59,11 +59,11 @@ def plan_reply(pos, white_move, depth: int = 2, tt=None):
             if t in SUPPORT:
                 for mv in SUPPORT[t]:
                     if mv in legal:
-                        return mv, "podparcie", 0
+                        return mv, "support", 0
             continue
         if (f, t) in legal:
             return _guarded(pos, (f, t), "plan") + (0,)
-    return m, "zwykła polityka", s
+    return m, "default policy", s
 
 
 def expand(max_plies: int = 16, log=print, capture: bool = False, guard: bool = False, safe: bool = False):
@@ -93,23 +93,23 @@ def minimal_reply(pos, white_move, depth: int = 2, tt=None):
     from .board import FIRST_BLACK, KNIGHT
     m, s = best_black_move(pos, depth, tt)
     if s >= WIN - 1000:
-        return m, "wygrana", s
+        return m, "win", s
     legal = set(pos.moves())
     for t in FIRST_BLACK:                                       # recapture an intruder on our square
         if pos.w >> t & 1:
             pref = [(f, t) for f in RECAPTURERS[t] if (f, t) in legal]
             other = sorted(mv for mv in legal if mv[1] == t)
             if pref or other:
-                return (pref or other)[0], "odbicie", 0
+                return (pref or other)[0], "recapture", 0
     aw, ab = pos.attackers()
     todo = [(f, t) for f, t in MIN_STEPS if pos.b >> f & 1 and not pos.b >> t & 1 and (f, t) in legal]
     if aw > ab:                                                 # urgent: enter the ring
         urgent = [mv for mv in todo if mv[1] in FIRST_BLACK]
         if urgent:
-            return urgent[0], "plan (pilne wejście)", 0
+            return urgent[0], "plan (urgent entry)", 0
     if todo:
         return todo[0], "plan", 0
-    return m, "zwykła polityka", s
+    return m, "default policy", s
 
 
 def expand_minimal(max_plies: int = 20, log=print):
@@ -131,29 +131,29 @@ def minimal_reply2(pos, white_move, depth: int = 2, tt=None):
     from .board import FIRST_BLACK, KNIGHT
     m, s = best_black_move(pos, depth, tt)
     if s >= WIN - 1000:
-        return m, "wygrana", s
+        return m, "win", s
     legal = set(pos.moves())
     for t in FIRST_BLACK:                                       # recapture an intruder on our square
         if pos.w >> t & 1:
             pref = [(f, t) for f in RECAPTURERS[t] if (f, t) in legal]
             other = sorted(mv for mv in legal if mv[1] == t)
             if pref or other:
-                return (pref or other)[0], "odbicie", 0
+                return (pref or other)[0], "recapture", 0
     aw, ab = pos.attackers()
     todo = [(f, t) for f, t in MIN2_STEPS if pos.b >> f & 1 and not pos.b >> t & 1 and (f, t) in legal]
     if aw > ab:
         urgent = [mv for mv in todo if mv[1] in FIRST_BLACK]
         if urgent:
-            return urgent[0], "plan (pilne wejście)", 0
+            return urgent[0], "plan (urgent entry)", 0
     if SUPPORT_OCCUPIED:                                        # our knight already on (2,5)/(6,5) and attacked
         for (src, tgt), sup in COND_SUPPORT.items():
             if pos.b >> tgt & 1 and not pos.b >> sup[1] & 1 and sup in legal \
                     and any(pos.w >> k & 1 for k in KNIGHT[tgt]):
-                return sup, "podparcie (stojący atakowany)", 0
+                return sup, "support (attacked knight)", 0
     if ADVANCE_ON_RETREAT and white_move is not None:   # white retreated: take the space instead of mirroring
         adv = advance_on_retreat(pos, white_move, tt)
         if adv is not None:
-            return adv, "do przodu po cofnięciu białych", 0
+            return adv, "advance after a white retreat", 0
     for mv in todo:
         sup = COND_SUPPORT.get(mv)
         if sup:
@@ -161,10 +161,10 @@ def minimal_reply2(pos, white_move, depth: int = 2, tt=None):
             supported = pos.b >> sup[1] & 1
             if attacked and not supported:
                 if sup in legal:
-                    return sup, "podparcie (pole atakowane)", 0
+                    return sup, "support (attacked square)", 0
                 continue                                        # cannot support: do not jump into a capture
         return mv, "plan", 0
-    return m, "zwykła polityka", s
+    return m, "default policy", s
 
 
 SUPPORT_OCCUPIED = False   # True: also support a black knight already standing on (2,5)/(6,5) once it is attacked

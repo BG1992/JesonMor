@@ -15,13 +15,13 @@ from .board import Move, Position
 from .routes import _classify
 from .search import WIN
 
-ENGINE_AT = ("kanoniczna", "pełna, niekanoniczna")
+ENGINE_AT = ("canonical", "full, non-canonical")
 
 
 class PlanEnginePlayer:
     def __init__(self, engine, plan_depth: int = 2, name: str = None):
         self.engine, self.plan_depth = engine, plan_depth
-        self.name = name or "plan otwarcia + %s" % engine.name
+        self.name = name or "opening plan + %s" % engine.name
         self.reset()
 
     @property
@@ -44,7 +44,7 @@ class PlanEnginePlayer:
         self.reset()
         for i, p in enumerate(positions):
             if _classify(p) in ENGINE_AT:
-                self.phase, self.switch = "engine", ("kanoniczna", i, p)
+                self.phase, self.switch = "engine", ("canonical", i, p)
                 break
 
     def plan_move(self, pos: Position):
@@ -59,12 +59,12 @@ class PlanEnginePlayer:
         history = history or {}
         ply = max(0, sum(history.values()) - 1)          # plies played (history counts the positions of the game)
         if self.phase == "plan" and _classify(pos) in ENGINE_AT:
-            self.phase, self.switch = "engine", ("kanoniczna", ply, pos)
+            self.phase, self.switch = "engine", ("canonical", ply, pos)
         if self.phase == "engine":
             return self.engine.move(pos, history, rng)
         m, kind, s = self.plan_move(pos)
         if s >= WIN - 1000:                              # the expansion stopped here: proven black win
-            self.phase, self.switch = "engine", ("wygrana", ply, pos)
+            self.phase, self.switch = "engine", ("win", ply, pos)
         elif _classify(pos.play(m)) in ENGINE_AT:
-            self.phase, self.switch = "engine", ("kanoniczna", ply + 1, pos.play(m))
+            self.phase, self.switch = "engine", ("canonical", ply + 1, pos.play(m))
         return m, "plan: %s" % kind

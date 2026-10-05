@@ -337,7 +337,7 @@ def majority_rule(state: State, tempo: bool = False) -> int:
     one free knight less wins when more of its free knights than of the opponent's stand on odd squares (ring 3,
     one jump from attacking the first-order ring). It predicts what the next ply of search would find, so it is
     right only for a state left undecided by a 1-ply search: after 0 plies (open tactics) or 2 plies (a real
-    tempo win would already be found) it is wrong more often than right (README 4, "Reguła tempa")."""
+    tempo win would already be found) it is wrong more often than right (README_EN 4, "Tempo rule")."""
     mine, theirs = state[1 + state[3]], state[2 - state[3]]
     d = len(mine) - len(theirs)
     if d == 0:

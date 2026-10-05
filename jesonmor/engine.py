@@ -32,29 +32,29 @@ FEATURES = ("attackers", "free", "majority", "threats", "active", "hunts", "mobi
             "hanging", "exposed", "unanswered", "entries", "parity", "tempo", "overloaded", "loose", "outnumbered",
             "bluff")
 FEATURE_INFO = {
-    "attackers": "skoczki na polach pierwszego rzędu",
-    "free": "wolne skoczki (poza pierwszym rzędem)",
-    "majority": "reguła przewagi: znak różnicy wolnych skoczków w pozycji pełnej 4:4",
-    "threats": "wolne skoczki atakujące skoczka przeciwnika w pierwszym rzędzie",
-    "active": "wolne skoczki na polach atakujących pierwszy rząd",
-    "hunts": "ataki wolnych skoczków na wolne skoczki przeciwnika",
-    "mobility": "ruchy wolnych skoczków",
-    "near": "bliskość wolnych skoczków do pierścienia (3 - nr pierścienia)",
-    "reinforce": "puste pola pierwszego rzędu osiągalne jednym skokiem",
-    "hanging": "wolne skoczki atakowane przez wolnego skoczka przeciwnika i niebronione",
-    "exposed": "własne skoczki pierwszego rzędu atakowane przez wolne skoczki przeciwnika",
-    "unanswered": "atakowane skoczki pierwszego rzędu bez odpowiedzi (reguła strażnika, L4)",
-    "entries": "puste, niepilnowane pola atakujące własny pierścień, na które może skoczyć wolny skoczek przeciwnika",
-    "parity": "prawo parzystości przy równej liczbie wolnych skoczków w pozycji pełnej (+1 = dobre dla czarnych)",
-    "tempo": "+1 gdy ruch czarnych, -1 gdy ruch białych",
-    "overloaded": "przeciążona obrona strony na posunięciu bez własnej groźby: jej skoczki pierwszego rzędu atakowane "
-                  "przez wolne skoczki przeciwnika, których wszyscy wolni obrońcy wiszą (atakowani i niebronieni)",
-    "loose": "luźne skoczki pierwszego rzędu: niebronione, żaden własny wolny skoczek nie dojdzie jednym skokiem na "
-             "pole obrony, a wolny skoczek przeciwnika już je atakuje albo może je zaatakować jednym skokiem",
-    "outnumbered": "skoczki pierwszego rzędu atakowane przez więcej wolnych skoczków przeciwnika, niż bronią ich własne "
-                   "wolne skoczki (co najmniej jeden obrońca; bez obrońcy: unanswered, loose)",
-    "bluff": "pozorna inicjatywa: atakowane niebronione skoczki pierwszego rzędu, które unanswered pomija z powodu "
-             "własnej groźby, choć każda własna groźba jest pokryta (atakujących nie więcej niż obrońców)",
+    "attackers": "knights on first-order squares",
+    "free": "free knights (off the first-order squares)",
+    "majority": "majority rule: sign of the difference of free knights in a full 4:4 position",
+    "threats": "free knights attacking an enemy first-order knight",
+    "active": "free knights on squares attacking the first order",
+    "hunts": "attacks of free knights on enemy free knights",
+    "mobility": "moves of the free knights",
+    "near": "closeness of the free knights to the ring (3 - ring number)",
+    "reinforce": "empty first-order squares reachable in one jump",
+    "hanging": "free knights attacked by an enemy free knight and undefended",
+    "exposed": "own first-order knights attacked by enemy free knights",
+    "unanswered": "attacked first-order knights without an answer (guard rule, L4)",
+    "entries": "empty unguarded squares attacking the own ring that an enemy free knight can jump to",
+    "parity": "parity law at equal free knights in a full position (+1 = good for black)",
+    "tempo": "+1 with black to move, -1 with white to move",
+    "overloaded": "overloaded defence of the side to move without an own threat: its first-order knights attacked by "
+                  "enemy free knights whose free defenders all hang (attacked and undefended)",
+    "loose": "loose first-order knights: undefended, no own free knight reaches a defending square in one jump, "
+             "and an enemy free knight attacks them or can attack them in one jump",
+    "outnumbered": "first-order knights attacked by more enemy free knights than own free knights defend them "
+                   "(at least one defender; without a defender: unanswered, loose)",
+    "bluff": "sham initiative: attacked undefended first-order knights that unanswered skips because of an own "
+             "threat, although every own threat is covered (no more attackers than defenders)",
 }
 # start point of the search: the weights of search.rank (attacker 120 + material 60, ...) plus the newer features
 DEFAULT_WEIGHTS = {"attackers": 180, "free": 60, "majority": 100, "threats": 30, "active": 10, "hunts": 8,
@@ -205,7 +205,7 @@ class Heuristic:
     """Weighted feature sum + exact knowledge. `mirror_bonus` is added at the root to a black move that restores
     the colour-mirror symmetry (the move that never loses, README 6.1)."""
 
-    def __init__(self, weights=None, mirror_bonus: float = 0.0, theory: bool = True, name: str = "heurystyka"):
+    def __init__(self, weights=None, mirror_bonus: float = 0.0, theory: bool = True, name: str = "heuristic"):
         weights = dict(DEFAULT_WEIGHTS if weights is None else weights)
         self.weights = {k: float(weights.get(k, 0.0)) for k in FEATURES}
         self.w = [self.weights[k] for k in FEATURES]
@@ -225,7 +225,7 @@ class Heuristic:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Heuristic":
-        return cls(d["weights"], d.get("mirror_bonus", 0.0), d.get("theory", True), d.get("name", "heurystyka"))
+        return cls(d["weights"], d.get("mirror_bonus", 0.0), d.get("theory", True), d.get("name", "heuristic"))
 
     def __repr__(self):
         return "Heuristic(%s, mirror_bonus=%g)" % (", ".join("%s=%g" % kv for kv in self.weights.items()),
@@ -284,8 +284,8 @@ class HeuristicPlayer:
                  tt_limit: int = 300000, ext: int = 0, ext_free: int = 6):
         self.h, self.depth, self.qdepth = heuristic, depth, qdepth
         self.ext, self.ext_free = ext, ext_free
-        self.name = name or "%s (głębokość %d%s)" % (heuristic.name, depth,
-                                                      ", końcówka +%d" % ext if ext else "")
+        self.name = name or "%s (depth %d%s)" % (heuristic.name, depth,
+                                                      ", endgame +%d" % ext if ext else "")
         self.tt_limit = tt_limit
         self.reset()
 
@@ -427,8 +427,8 @@ class MeanPlayer:
         self.lo = HeuristicPlayer(heuristic, max(1, depth - 1), ext=ext, ext_free=ext_free, tt_limit=tt_limit)
         self.hi = HeuristicPlayer(heuristic, depth, ext=ext, ext_free=ext_free, tt_limit=tt_limit)
         self.h, self.top, self.ext = heuristic, top, ext
-        self.name = name or "%s (średnia gł. %d i %d%s)" % (heuristic.name, depth - 1, depth,
-                                                            ", końcówka +%d" % ext if ext else "")
+        self.name = name or "%s (mean of depths %d and %d%s)" % (heuristic.name, depth - 1, depth,
+                                                            ", endgame +%d" % ext if ext else "")
 
     @property
     def depth(self) -> int:
@@ -473,7 +473,7 @@ class BaselinePlayer:
 
     def __init__(self, depth: int = 3, name: str = None, tt_limit: int = 300000):
         self.depth, self.tt_limit = depth, tt_limit
-        self.name = name or "bazowy alfa-beta (głębokość %d)" % depth
+        self.name = name or "reference alpha-beta (depth %d)" % depth
         self.reset()
 
     def reset(self):
@@ -512,7 +512,7 @@ class GameResult(NamedTuple):
     winner: Optional[int]        # WHITE, BLACK or None (draw: repetition or ply limit)
     plies: int
     moves: List[Move]
-    reason: str                  # 'koniec' (decided), 'powtórzenie', 'limit'
+    reason: str                  # 'decided', 'repetition', 'limit'
 
     def score(self, max_plies: int, loss: float = -2.0) -> float:
         """Black's score: win 1 + up to 0.25 for speed, draw 0, loss `loss`."""
@@ -537,7 +537,7 @@ def play_game(root: Position, white, black, max_plies: int = 100, seed: int = 0)
     while True:
         wd = exchange_winner(p)
         if wd is not None:
-            return GameResult(root, wd, len(moves), moves, "koniec")
+            return GameResult(root, wd, len(moves), moves, "decided")
         if len(moves) >= max_plies:
             return GameResult(root, None, len(moves), moves, "limit")
         m, _ = (white if p.turn == WHITE else black).move(p, history, rng)
@@ -545,16 +545,16 @@ def play_game(root: Position, white, black, max_plies: int = 100, seed: int = 0)
         moves.append(m)
         history[p] = history.get(p, 0) + 1
         if history[p] >= 3:
-            return GameResult(root, None, len(moves), moves, "powtórzenie")
+            return GameResult(root, None, len(moves), moves, "repetition")
 
 
 def save_gif(game: GameResult, path: str, title: str = "") -> str:
     from .gif import line_gif
     pos = game.positions()
-    caps = ["%s start" % title] + ["%s %d. %s %s" % (title, i + 1, "białe" if p.turn == BLACK else "czarne",
+    caps = ["%s start" % title] + ["%s %d. %s %s" % (title, i + 1, "white" if p.turn == BLACK else "black",
                                                      "%s-%s" % (_nm(m[0]), _nm(m[1])))
                                    for i, (p, m) in enumerate(zip(pos[1:], game.moves))]
-    res = {WHITE: "wygrywają białe", BLACK: "wygrywają czarne", None: "remis (%s)" % game.reason}[game.winner]
+    res = {WHITE: "white wins", BLACK: "black wins", None: "draw (%s)" % game.reason}[game.winner]
     caps[-1] += " - " + res
     return line_gif(pos, [None] + list(game.moves), caps, path)
 

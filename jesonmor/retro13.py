@@ -59,7 +59,7 @@ def _externals(lg):
                 rest = tuple(FREE[i] for i in TRI[k] if i != u)
                 v = -cn.value((cn.CANON, (FREE[u],), rest, BLACK))
                 extA[x, k] = max(extA[x, k], v)
-    lg("stopień 0: białe na ruchu - bicia wolnych skoczków -> (1,2), wymiany -> (0,2)")
+    lg("degree 0: white to move - captures of free knights -> (1,2), exchanges -> (0,2)")
     # black to move: capture of white's only free knight wins; ring capture -> white must answer with x
     extB = np.full((F, T), -2, np.int8)
     for x in range(F):
@@ -84,7 +84,7 @@ def _externals(lg):
                 for T_, v in zip(opts, vals):
                     col = np.where(can[T_], np.minimum(col, v), col)
                 extB[:, k] = np.maximum(extB[:, k], col)
-    lg("stopień 0: czarne na ruchu - bicie jedynego wolnego białego, wymiany -> (0,2) (%d stanów (0,2))" % len(v02))
+    lg("degree 0: black to move - capture of the only free white knight, exchanges -> (0,2) (%d states (0,2))" % len(v02))
     return extA, extB
 
 
@@ -93,7 +93,7 @@ def solve(log=print):
     lg = lambda msg: log("[%5.0fs] %s" % (time.time() - t0, msg))
     valid = ~CONT                                                        # x not in the triple
     succ, dest = _black_successors()
-    lg("następniki ruchów czarnych: %d trójek x %d ruchów" % succ.shape)
+    lg("successors of black moves: %d triples x %d moves" % succ.shape)
     extA, extB = _externals(lg)
     nqA = np.array([len(ATT[x]) - sum((CONT[d].astype(int) for d in ATT[x]), np.zeros(T, int)) for x in range(F)])
     nqB = ((succ >= 0)[None, :, :] & (dest[None, :, :] != np.arange(F)[:, None, None])).sum(2)
@@ -103,7 +103,7 @@ def solve(log=print):
         X[valid & (ext != 1) & (nq == 0)] = -1
     degA, degB = np.where(A != 0, 1, 0).astype(np.int16), np.where(B != 0, 1, 0).astype(np.int16)
     report = lambda lvl, a, b: lg(
-        "stopień %d: (1,3) białe na ruchu +W %d +L %d | (3,1) białe na ruchu +W %d +L %d | nieznane %d / %d"
+        "degree %d: (1,3) white to move +W %d +L %d | (3,1) white to move +W %d +L %d | unknown %d / %d"
         % (lvl, a[0], a[1], b[0], b[1], int((valid & (A == 0)).sum()), int((valid & (B == 0)).sum())))
     report(1, ((A == 1).sum(), (A == -1).sum()), ((B == 1).sum(), (B == -1).sum()))
     xs = np.arange(F)[:, None]
@@ -133,11 +133,11 @@ def solve(log=print):
     os.makedirs(cn.CACHE_DIR, exist_ok=True)
     np.savez_compressed(PATH, A=A, B=B, degA=degA, degB=degB, valid=valid)
     n = int(valid.sum())
-    for name, X in (("(1,3) białe na ruchu", A), ("(3,1) białe na ruchu", B)):
-        lg("%s: stanów %d, wygrane %d (%.1f%%), przegrane %d (%.1f%%), remisy %d"
+    for name, X in (("(1,3) white to move", A), ("(3,1) white to move", B)):
+        lg("%s: states %d, wins %d (%.1f%%), losses %d (%.1f%%), draws %d"
            % (name, n, (X == 1).sum(), 100 * (X == 1).sum() / n, (X == -1).sum(),
               100 * (X == -1).sum() / n, int((valid & (X == 0)).sum())))
-    lg("zapisano %s (%.1f MB)" % (PATH, os.path.getsize(PATH) / 1e6))
+    lg("saved %s (%.1f MB)" % (PATH, os.path.getsize(PATH) / 1e6))
 
 
 _CACHE = {}

@@ -40,7 +40,7 @@ def _v12(masks, lg):
             (vw if turn == WHITE else vb)[FI[wf[0]], PI[(FI[bf[0]], FI[bf[1]])]] = v
         Vw[m], Vb[m] = vw, vb
         del tab
-        lg("stopień 0: tablica (1,2) dla maski %02x gotowa (%d/%d)" % (m, len(Vw), len(masks)))
+        lg("degree 0: (1,2) table for mask %02x ready (%d/%d)" % (m, len(Vw), len(masks)))
     return Vw, Vb
 
 
@@ -78,7 +78,7 @@ def _ext_white(moves, Vw, W22, lg):
                 for j in range(3):
                     best = np.where(ATTACKS[Tq][TR[:, j]], np.minimum(best, vw[RP[:, j]]), best)
             E[(r, S)] = np.where(best == 2, 1, best).astype(np.int8)
-    lg("stopień 0: białe na ruchu - %d wektorów wymian -> (1,2)" % len(E))
+    lg("degree 0: white to move - %d exchange vectors -> (1,2)" % len(E))
     idx_u = [np.nonzero(C3[u])[0] for u in range(F)]
     rest_u = [np.array([PI[tuple(x for x in TRI[t] if x != u)] for t in idx_u[u]]) for u in range(F)]
     for k in range(P):
@@ -88,7 +88,7 @@ def _ext_white(moves, Vw, W22, lg):
         for k2, u, rest in moves[k][0]:
             vals = -W22[MP2[rest_u[u]], MP2[k2]]            # (2,2) black to move, via mirror
             row[idx_u[u]] = np.maximum(row[idx_u[u]], vals)
-    lg("stopień 0: białe na ruchu - bicia wolnych czarnych -> (2,2)")
+    lg("degree 0: white to move - captures of free black knights -> (2,2)")
     return ext
 
 
@@ -99,7 +99,7 @@ def _ext_black(succ, dest, Vb, A13, lg):
         tp = succ[tt, jj]
         for k in np.nonzero(C2[d])[0]:
             np.maximum.at(ext[k], tt, -A13[OTHER2[d, k], tp])
-    lg("stopień 0: czarne na ruchu - bicia wolnych białych -> (1,3)")
+    lg("degree 0: black to move - captures of free white knights -> (1,3)")
     for j in range(3):                                       # ring exchanges -> (1,2)
         for S in FIRST_WHITE:
             sel = np.nonzero(ATTACKS[S][TR[:, j]])[0]
@@ -112,7 +112,7 @@ def _ext_black(succ, dest, Vb, A13, lg):
                     val = vb[o[can][:, None], rp[None, :]]
                     best[can] = np.minimum(best[can], val)
             ext[:, sel] = np.maximum(ext[:, sel], np.where(best == 2, 1, best))
-    lg("stopień 0: czarne na ruchu - wymiany w pierścieniu -> (1,2)")
+    lg("degree 0: black to move - ring exchanges -> (1,2)")
     return ext
 
 
@@ -142,7 +142,7 @@ def solve(log=print):
             D[k0:k1][~v] = 127                                            # invalid (overlapping) states
     del extA, extB
     unknown = lambda X, D: int(((X == 0) & (D != 127)).sum())
-    lg("stopień 1: stanów %d | (2,3) białe na ruchu +W %d | (3,2) białe na ruchu +W %d | nieznane %d / %d"
+    lg("degree 1: states %d | (2,3) white to move +W %d | (3,2) white to move +W %d | unknown %d / %d"
        % (nvalid, int((A == 1).sum()), int((B == 1).sum()), unknown(A, DA), unknown(B, DB)))
     level = 1
     while True:
@@ -178,18 +178,18 @@ def solve(log=print):
         DA[wA | lA] = level
         nA = [int(wA.sum()), int(lA.sum())]
         del newA, wA, lA
-        lg("stopień %d: (2,3) białe na ruchu +W %d +L %d | (3,2) białe na ruchu +W %d +L %d | nieznane %d / %d"
+        lg("degree %d: (2,3) white to move +W %d +L %d | (3,2) white to move +W %d +L %d | unknown %d / %d"
            % (level, nA[0], nA[1], nB[0], nB[1], unknown(A, DA), unknown(B, DB)))
         if not any(nA + nB):
             break
     os.makedirs(cn.CACHE_DIR, exist_ok=True)
     np.savez_compressed(PATH, A=A, B=B)
-    for name, X, D in (("(2,3) białe na ruchu", A, DA), ("(3,2) białe na ruchu", B, DB)):
+    for name, X, D in (("(2,3) white to move", A, DA), ("(3,2) white to move", B, DB)):
         ok = D != 127
-        lg("%s: stanów %d, wygrane %d (%.1f%%), przegrane %d (%.1f%%), remisy %d, najdłuższa partia %d"
+        lg("%s: states %d, wins %d (%.1f%%), losses %d (%.1f%%), draws %d, longest game %d"
            % (name, nvalid, (X == 1).sum(), 100 * (X == 1).sum() / nvalid, (X == -1).sum(),
               100 * (X == -1).sum() / nvalid, int(((X == 0) & ok).sum()), int((D[ok] & 127).max())))
-    lg("zapisano %s (%.1f MB)" % (PATH, os.path.getsize(PATH) / 1e6))
+    lg("saved %s (%.1f MB)" % (PATH, os.path.getsize(PATH) / 1e6))
 
 
 _CACHE = {}

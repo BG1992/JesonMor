@@ -61,7 +61,7 @@ def _exchange_vectors(log):
                 for g, u in ((PA, PB), (PB, PA)):
                     best = np.where(att[T][g], np.minimum(best, m[u]), best)
             out[(r, S)] = np.where(best == 2, 1, best).astype(np.int8)
-    log("stopień 0: wymiany w pierścieniu -> (1,1): %d tablic masek, %d wektorów" % (len(tabs), len(out)))
+    log("degree 0: ring exchanges -> (1,1): %d mask tables, %d vectors" % (len(tabs), len(out)))
     return out
 
 
@@ -72,7 +72,7 @@ def _capture_matrix(log):
         for u in range(len(FREE)):
             if u != a and u != b:
                 cap[k2, u] = -cn.value((cn.CANON, (FREE[a], FREE[b]), (FREE[u],), BLACK))
-    log("stopień 0: bicia wolnych skoczków -> (2,1)/(1,2): %d stanów odczytanych" % int((cap != 0).sum()))
+    log("degree 0: captures of free knights -> (2,1)/(1,2): %d states read" % int((cap != 0).sum()))
     return cap
 
 
@@ -100,7 +100,7 @@ def solve(log=print):
     deg = np.zeros((P, P), np.int16)
     deg[W != 0] = 1
     n = int(valid.sum())
-    lg("stopień 1: stanów %d, wygranych %d, przegranych %d, nieznanych %d"
+    lg("degree 1: states %d, wins %d, losses %d, unknown %d"
        % (n, int((W == 1).sum()), int((W == -1).sum()), int((valid & (W == 0)).sum())))
     level = 1
     while True:
@@ -119,14 +119,14 @@ def solve(log=print):
         new_l = unknown & ~anyL & allW & (ext <= -1)
         W[new_w], W[new_l] = 1, -1
         deg[new_w | new_l] = level
-        lg("stopień %d: +%d wygranych, +%d przegranych | razem W %d, L %d, nieznane %d"
+        lg("degree %d: +%d wins, +%d losses | total W %d, L %d, unknown %d"
            % (level, int(new_w.sum()), int(new_l.sum()), int((W == 1).sum()), int((W == -1).sum()),
               int((valid & (W == 0)).sum())))
         if not new_w.any() and not new_l.any():
             break
     os.makedirs(cn.CACHE_DIR, exist_ok=True)
     np.savez_compressed(PATH, W=W, deg=deg, valid=valid)
-    lg("koniec: remisy (nieskończona gra) %d; zapisano %s (%.1f MB)"
+    lg("done: draws (endless game) %d; saved %s (%.1f MB)"
        % (int((valid & (W == 0)).sum()), PATH, os.path.getsize(PATH) / 1e6))
     return W, deg, valid
 
