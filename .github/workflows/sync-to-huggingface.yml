@@ -1,7 +1,4 @@
 name: Sync to Hugging Face Space
-# Pushes the repository to the Space named by the repository variable HF_SPACE (e.g. "user/jeson-mor") with the
-# secret HF_TOKEN (a Hugging Face token with write access). Hugging Face accepts binary files only through Git LFS,
-# so the binary tables are converted to LFS in this runner only; the GitHub repository stays without LFS.
 on:
   push:
     branches: [main]

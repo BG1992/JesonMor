@@ -35,35 +35,6 @@ The page opens at `http://127.0.0.1:8765/`. On the first start the server unpack
 Options: `--host`, `--port` (or the `PORT` variable), `--no-browser`, `--save` (saves games, needs Pillow and
 tkinter).
 
-## Deploy
-
-### 1. GitHub repository
-
-```bash
-git remote add origin https://github.com/<user>/<repository>.git
-git push -u origin main
-```
-
-### 2a. Hugging Face Spaces (recommended: free CPU, 16 GB RAM)
-
-1. On huggingface.co create a **Docker** Space (e.g. `<user>/jeson-mor`).
-2. In the GitHub repository, *Settings → Secrets and variables → Actions*: the secret `HF_TOKEN` (a Hugging Face
-   token with write access) and the variable `HF_SPACE` = `<user>/jeson-mor`.
-3. Every push to `main` sends the code to the Space (`.github/workflows/sync-to-huggingface.yml`); the Space builds
-   the image from the `Dockerfile` and starts the game.
-
-### 2b. Render
-
-*New → Blueprint*, pick the repository (`render.yaml`, image from the `Dockerfile`). The free plan has 512 MB of RAM,
-close to what the engine needs (endgame tables); on memory errors choose a bigger plan or Hugging Face.
-
-### 2c. Any server with Docker
-
-```bash
-docker build -t jeson-mor .
-docker run -p 7860:7860 jeson-mor
-```
-
 ## Tests
 
 ```bash
